@@ -1,0 +1,75 @@
+# Model Configuration
+model:
+  name: "yolo11n"  # yolo11n, yolo11s, yolo11m, yolo11l, yolo11x
+  weights: "yolo11n.pt"  # Path to pretrained weights
+  conf_threshold: 0.25
+  iou_threshold: 0.45
+  max_detections: 1000
+  device: "auto"  # auto, cpu, cuda, mps
+
+# Camera Configuration
+camera:
+  source: 0  # Camera index or IP camera URL
+  width: 1280
+  height: 720
+  fps: 30
+  buffer_size: 1
+
+# Tracking Configuration
+tracking:
+  enabled: true
+  tracker_type: "bytetrack"  # bytetrack, sort, deepsort
+  max_age: 30
+  min_hits: 3
+  iou_threshold: 0.3
+
+# Detection Classes (COCO dataset by default)
+classes:
+  enabled_classes: []  # Empty list means all classes, or specify: [0, 1, 2] for person, bicycle, car
+  class_names:
+    0: "person"
+    1: "bicycle"
+    2: "car"
+    3: "motorcycle"
+    # Add more as needed
+
+# Output Configuration
+output:
+  save_results: true
+  output_dir: "outputs"
+  save_video: true
+  save_images: false
+  save_annotations: true
+  video_codec: "mp4v"
+  video_fps: 30
+
+# Label Studio Configuration
+label_studio:
+  url: "http://localhost:8080"
+  api_token: ""  # Set your Label Studio API token
+  project_name: "YOLOv11_Detection"
+  auto_export: true
+  export_format: "YOLO"
+
+# Training Configuration
+training:
+  data_path: "data/dataset.yaml"
+  epochs: 100
+  batch_size: 16
+  image_size: 640
+  learning_rate: 0.01
+  save_period: 10
+  validation_split: 0.2
+
+# API Configuration
+api:
+  host: "0.0.0.0"
+  port: 8000
+  debug: false
+  cors_enabled: true
+
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  save_logs: true
+  log_file: "logs/app.log"
