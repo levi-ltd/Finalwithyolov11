@@ -1,25 +1,33 @@
-# YOLOv11 Object Detection and Tracking - Development Notes
+# YOLOv11 Singer Detection System - Development Notes
 
-## Project Structure Overview
+## Project Overview
 
-This project implements a comprehensive object detection and tracking system using YOLOv11 with Label Studio integration. Here's how the components work together:
+This project implements a specialized object detection and tracking system using YOLOv11, specifically designed for **singer detection** in live performance environments. The system uses a simplified 3-class approach that automatically identifies singers based on person-microphone proximity.
 
-### Core Components
+### Core Concept: Automatic Singer Detection
 
-1. **Detection Module** (`src/detection/`)
-   - `detector.py`: YOLOv11 model wrapper with detection functionality
-   - Handles model loading, inference, and result processing
-   - Supports different YOLO model sizes (n, s, m, l, x)
+**Input Classes**: Person, Microphone  
+**Logic**: Person + Microphone (within proximity threshold) = Singer  
+**Output Classes**: Person, Microphone, Singer  
 
-2. **Tracking Module** (`src/tracking/`)
-   - `tracker.py`: Multi-object tracking using Kalman filters
-   - Implements simple centroid tracking with IoU association
-   - Maintains object identities across frames
+### Key Components
 
-3. **Camera Module** (`src/camera/`)
-   - `camera_manager.py`: Camera input and video processing
-   - Supports webcam, IP cameras, and video files
-   - Handles frame capture, video recording, and streaming
+1. **Singer Detection Module** (`src/detection/detector.py`)
+   - Processes YOLO detections for person and microphone objects
+   - Implements proximity-based singer classification algorithm
+   - Maps original YOLO classes to simplified 3-class system
+   - Configurable distance thresholds for singer detection
+
+2. **Enhanced Tracking** (`src/tracking/tracker.py`)
+   - Maintains singer state across frames
+   - Tracks microphone-person relationships over time
+   - Preserves singer IDs even when microphone is temporarily occluded
+   - Stores singer-specific metadata (microphone distance, original class)
+
+3. **Performance-Optimized Camera** (`src/camera/camera_manager.py`)
+   - Optimized for live performance scenarios
+   - Supports stage lighting conditions
+   - Real-time processing for live streaming integration
 
 4. **Label Studio Integration** (`src/labeling/`)
    - `label_studio_manager.py`: Interface with Label Studio API
@@ -51,23 +59,40 @@ All settings are managed through `config/config.yaml`:
 - Label Studio connection details
 - API server settings
 
-### Data Flow
+### Singer Detection Data Flow
 
 1. **Input**: Camera/video → `CameraManager`
-2. **Detection**: Frame → `YOLODetector` → Detection results
-3. **Tracking**: Detections → `ObjectTracker` → Tracked objects with IDs
-4. **Visualization**: Tracked objects → `Visualizer` → Annotated frame
-5. **Output**: Results → File export, API response, or Label Studio
+2. **YOLO Detection**: Frame → `YOLODetector` → Raw detections (person, microphone)
+3. **Singer Classification**: Raw detections → Proximity analysis → Singer detection
+4. **Tracking**: Enhanced detections → `ObjectTracker` → Tracked singers with IDs
+5. **Visualization**: Tracked objects → `Visualizer` → Color-coded annotations
+6. **Output**: Results → Performance analytics, streaming overlay, or Label Studio
 
-### Key Features
+### Singer Detection Algorithm
 
-- **Real-time Processing**: Optimized for live camera feeds
-- **Multi-object Tracking**: Maintains consistent IDs across frames
-- **Label Studio Integration**: Seamless annotation workflow
-- **Custom Training**: Fine-tune models on your data
-- **REST API**: Easy integration with other systems
-- **Comprehensive Logging**: Performance monitoring and debugging
-- **Flexible Configuration**: Easy parameter tuning
+```python
+def detect_singers(detections):
+    persons = [d for d in detections if d.class_name == 'person']
+    micros = [d for d in detections if d.class_name == 'micro']
+    
+    for person in persons:
+        for micro in micros:
+            distance = calculate_distance(person.bbox, micro.bbox)
+            if distance < PROXIMITY_THRESHOLD:
+                # Convert person to singer
+                person.class_name = 'singer'
+                person.has_micro = True
+                person.micro_distance = distance
+                break
+```
+
+### Key Features for Live Performances
+
+- **Real-time Processing**: Optimized for live streaming (target: 30+ FPS)
+- **Singer ID Persistence**: Maintains consistent IDs as performers move
+- **Stage-aware Detection**: Handles varying lighting and angles
+- **Multi-singer Support**: Tracks multiple singers simultaneously
+- **Microphone Handoff Detection**: Detects when microphone changes hands
 
 ### Performance Considerations
 

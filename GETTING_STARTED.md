@@ -1,13 +1,21 @@
-# Getting Started with YOLOv11 Object Detection and Tracking
+# Getting Started with YOLOv11 Singer Detection System
 
-This guide will help you get up and running with the YOLOv11 object detection and tracking system in just a few minutes.
+This guide will help you get up and running with the YOLOv11 singer detection system in just a few minutes. The system automatically detects people with microphones and classifies them as singers.
+
+## 🎤 What This System Does
+
+- **Detects People**: Identifies individuals in the frame (red boxes)
+- **Finds Microphones**: Locates microphones and similar objects (blue boxes)  
+- **Identifies Singers**: When a person is near a microphone, they become a singer (green boxes)
+- **Tracks Over Time**: Maintains singer IDs as they move around
+- **Shows Distance**: Displays microphone proximity for each detected singer
 
 ## Prerequisites
 
 - Windows 10/11 with PowerShell
 - Python 3.8 or higher
-- Webcam (optional, for real-time detection)
-- Git (to clone additional resources if needed)
+- Webcam (optional, for live testing)
+- Performance videos or images for testing
 
 ## Quick Setup
 
@@ -57,49 +65,77 @@ python demo.py video path\to\your\video.mp4
 
 ## Usage Examples
 
-### Real-time Camera Detection
+### Live Singer Detection
 
 ```powershell
-# Basic camera detection
+# Start real-time singer detection
 python src\main.py --source camera --device 0
-
-# With custom settings
-python src\main.py --source camera --device 0 --output results\camera_output.mp4
 ```
 
-### Video File Processing
+**What you'll see:**
+- 🔴 Red boxes: People without microphones
+- 🔵 Blue boxes: Microphones
+- 🟢 Green boxes: Singers (people with microphones)
+- 🎵 Music note symbol on singers
+- Distance indicator showing microphone proximity
+
+### Process Performance Videos
 
 ```powershell
-# Process a video file
-python src\main.py --source video --input path\to\video.mp4
-
-# Save results
-python src\main.py --source video --input video.mp4 --output results\processed_video.mp4
+# Analyze a concert or performance video
+python src\main.py --source video --input concert_video.mp4 --output results\singer_analysis.mp4
 ```
 
-### Start Label Studio for Annotation
+**Perfect for:**
+- Concert recordings analysis
+- Live performance monitoring
+- Karaoke session tracking
+- Stage performance analytics
+
+### Configure Singer Detection
+
+Edit `config\config.yaml` to adjust sensitivity:
+
+```yaml
+singer_detection:
+  proximity_threshold: 50    # pixels (lower = closer required)
+  enabled: true
+
+model:
+  conf_threshold: 0.25      # detection confidence
+  name: "yolo11n"           # model size (n=fastest, x=most accurate)
+```
+
+### Label Your Own Performance Data
 
 ```powershell
-# Start Label Studio server
+# Start Label Studio for creating training data
 python src\labeling\start_labelstudio.py
 ```
 
-Then open http://localhost:8080 in your browser to access the annotation interface.
+1. Open http://localhost:8080
+2. Upload performance images/videos
+3. Label people, microphones, and singers
+4. Export data for custom training
 
-### API Server
+### API for Live Applications
 
 ```powershell
-# Start the REST API server
+# Start API server
 python src\api\app.py
 ```
 
-The API will be available at http://localhost:8000
-
-Test the API:
+**Test the API:**
 ```powershell
-# Using curl (if available)
-curl -X POST "http://localhost:8000/detect" -F "file=@image.jpg"
+# Upload an image for singer detection
+curl -X POST "http://localhost:8000/detect" -F "file=@performance_image.jpg"
 ```
+
+**Response includes:**
+- Singer detections with confidence scores
+- Microphone distances for each singer
+- Bounding box coordinates
+- Track IDs for video sequences
 
 ## Configuration
 
@@ -151,84 +187,144 @@ The notebook covers:
 
 ## Common Issues & Solutions
 
-### Camera Not Working
-```powershell
-# Check available cameras
-python -c "import cv2; print('Camera available:', cv2.VideoCapture(0).isOpened())"
+### Singer Not Detected
+```yaml
+# In config\config.yaml, try adjusting:
+singer_detection:
+  proximity_threshold: 75  # Increase if singers not detected
+  enabled: true
 
-# Try different camera indices (0, 1, 2, etc.)
+model:
+  conf_threshold: 0.20     # Lower for more sensitive detection
+```
+
+### False Singer Detections
+```yaml
+# In config\config.yaml:
+singer_detection:
+  proximity_threshold: 30  # Decrease for stricter detection
+  
+model:
+  conf_threshold: 0.30     # Higher for more confident detections
+```
+
+### Performance Issues
+- **Use smaller model**: Change to `yolo11n` for speed
+- **Reduce resolution**: Lower camera width/height in config
+- **Check lighting**: Ensure adequate stage/room lighting
+- **Close other apps**: Free up system resources
+
+### Microphones Not Detected
+```powershell
+# The system detects these as microphones:
+# - Handheld microphones
+# - Cell phones (often held like mics)
+# - Small handheld objects
+
+# For better microphone detection:
+# - Ensure good lighting on microphones
+# - Use contrasting backgrounds
+# - Consider training custom model with your specific microphones
+```
+
+### Camera Issues
+```powershell
+# Test camera availability
+python -c "import cv2; print('Camera:', cv2.VideoCapture(0).isOpened())"
+
+# Try different camera indices
 python src\main.py --source camera --device 1
+python src\main.py --source camera --device 2
 ```
 
-### Low Performance
-- Use a smaller model: Change `yolo11n` to `yolo11s` in config
-- Reduce image size in camera settings
-- Close other applications using the camera
-
-### Import Errors
+### Training Custom Models
 ```powershell
-# Reinstall dependencies
-pip install -r requirements.txt --force-reinstall
-
-# Check Python path
-python -c "import sys; print(sys.path)"
-```
-
-### Label Studio Not Starting
-```powershell
-# Install Label Studio separately
-pip install label-studio
-
-# Start manually
-label-studio start --port 8080
+# If default detection isn't working well:
+# 1. Collect your performance videos/images
+# 2. Use Label Studio to label people, microphones, singers
+# 3. Train custom model:
+python src\training\train.py --data your_dataset.yaml --epochs 50
 ```
 
 ## Next Steps
 
-1. **Customize Detection Classes**
-   - Edit `config\dataset.yaml` to define your object classes
-   - Update the Label Studio configuration for your specific use case
+1. **Optimize for Your Performances**
+   - Test with your typical performance setup
+   - Adjust proximity threshold for your stage size
+   - Train on your specific lighting conditions
 
-2. **Train Custom Models**
-   - Collect and label your own data using Label Studio
-   - Use the training utilities in `src\training\`
+2. **Create Custom Training Data**
+   - Record sample performances with various microphone types
+   - Use Label Studio to label people, microphones, and singers
+   - Train models specific to your performance style
 
-3. **Integrate with Your Application**
-   - Use the REST API for web integration
-   - Import the modules directly for custom Python applications
+3. **Integrate with Performance Systems**
+   - Use REST API for live streaming overlays
+   - Connect to lighting systems for singer-following spots
+   - Integrate with audio systems for automatic mixing
 
-4. **Optimize Performance**
-   - Experiment with different model sizes
-   - Tune tracking parameters for your specific scenario
-   - Consider GPU acceleration for better performance
+4. **Advanced Analytics**
+   - Track singer movement patterns
+   - Analyze performance engagement
+   - Generate automated performance reports
+   - Monitor microphone usage statistics
+
+## Performance Use Cases
+
+### 🎤 **Live Concerts**
+- Track lead singers vs backup singers
+- Monitor microphone handoffs
+- Generate performer analytics
+- Create automated camera switching
+
+### 🎵 **Karaoke Venues**
+- Automatic singer detection for scoring
+- Queue management based on detected singers
+- Performance recording with singer identification
+
+### 🎭 **Theater Productions**
+- Track speaking actors vs ensemble
+- Monitor wireless microphone usage
+- Analyze stage positioning
+
+### 📺 **Live Streaming**
+- Automatic singer highlighting
+- Dynamic overlay positioning
+- Performance statistics display
 
 ## Directory Structure
 
 ```
 ObjectDectionYolo11/
-├── src/                    # Source code
-│   ├── detection/         # YOLO detection
-│   ├── tracking/          # Multi-object tracking  
-│   ├── camera/            # Camera management
-│   ├── labeling/          # Label Studio integration
-│   ├── training/          # Model training
-│   ├── api/               # REST API
-│   └── utils/             # Utilities
-├── config/                # Configuration files
-├── data/                  # Dataset storage
-├── models/                # Model weights
-├── results/               # Output results
-├── notebooks/             # Jupyter tutorials
-├── requirements.txt       # Dependencies
-├── setup.py              # Setup script
-└── demo.py               # Quick demo
+├── src/                           # Source code
+│   ├── detection/                 # Singer detection logic
+│   │   └── detector.py           # 3-class detection + singer proximity
+│   ├── tracking/                  # Singer tracking over time
+│   │   └── tracker.py            # Maintains singer IDs
+│   ├── camera/                    # Live performance capture
+│   ├── labeling/                  # Annotation for person/micro/singer
+│   ├── training/                  # Custom model training
+│   ├── api/                       # REST API for live integration
+│   └── utils/                     # Performance visualization
+├── config/
+│   ├── config.yaml               # Singer detection settings
+│   └── dataset.yaml              # 3-class training config
+├── data/                          # Performance datasets
+├── models/                        # Trained singer detection models
+├── results/                       # Singer analysis outputs
+├── notebooks/
+│   └── yolo11_detection_tracking_tutorial.ipynb  # Singer detection demo
+├── requirements.txt               # Dependencies
+├── setup.py                      # Setup script
+└── demo.py                       # Quick singer detection test
 ```
 
-## Support
+## Support & Resources
 
-- Check the `DEVELOPMENT.md` file for technical details
-- Review the Jupyter notebook for comprehensive examples
-- Examine the configuration files in `config/`
-- Look at the source code in `src/` for implementation details
+- **Technical Details**: Check `DEVELOPMENT.md` for architecture info
+- **Complete Tutorial**: Run the Jupyter notebook for step-by-step examples
+- **Configuration**: Review `config/config.yaml` for all settings
+- **Source Code**: Examine `src/` directory for implementation details
+- **Performance Tips**: See troubleshooting section above
 
-Happy tracking! 🎯
+**Happy singer tracking! 🎤🎵**
