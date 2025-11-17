@@ -1,5 +1,6 @@
 """
-Main entry point for YOLOv11 Object Detection and Tracking System
+Main entry point for YOLOv11 Singer Detection and Tracking System
+Detects persons, microphones, and automatically identifies singers
 """
 import argparse
 import cv2
@@ -45,11 +46,14 @@ def main():
         raise NotImplementedError("Image source not implemented yet")
     
     # Main processing loop
+    frame_count = 0
     try:
         while True:
             frame = camera_manager.get_frame()
             if frame is None:
                 break
+            
+            frame_count += 1
             
             # Run detection
             detections = detector.detect(frame)
@@ -60,15 +64,35 @@ def main():
             else:
                 tracked_objects = detections
             
+            # Count class-specific objects
+            class_counts = {'person': 0, 'micro': 0, 'singer': 0}
+            for obj in tracked_objects:
+                if obj.class_name in class_counts:
+                    class_counts[obj.class_name] += 1
+            
             # Visualize results
             annotated_frame = visualizer.draw_detections(frame, tracked_objects)
             
+            # Add class count info
+            info_panel = {
+                'Frame': frame_count,
+                'Total Objects': len(tracked_objects),
+                'Persons': class_counts['person'],
+                'Microphones': class_counts['micro'],
+                'Singers': class_counts['singer']
+            }
+            annotated_frame = visualizer.draw_info_panel(annotated_frame, info_panel)
+            
             # Display frame
-            cv2.imshow("YOLOv11 Detection & Tracking", annotated_frame)
+            cv2.imshow("YOLOv11 Singer Detection System", annotated_frame)
             
             # Save frame if configured
             if config['output']['save_video']:
                 camera_manager.write_frame(annotated_frame)
+            
+            # Print periodic statistics
+            if frame_count % 30 == 0:
+                logger.info(f"Frame {frame_count}: {class_counts['singer']} singers, {class_counts['person']} persons, {class_counts['micro']} mics")
             
             # Check for exit
             if cv2.waitKey(1) & 0xFF == ord('q'):

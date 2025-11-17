@@ -28,7 +28,7 @@ class YOLOTrainer:
         
     def prepare_dataset(self, dataset_dir: str) -> str:
         """
-        Prepare dataset configuration file
+        Prepare dataset configuration file for 3-class singer detection system
         
         Args:
             dataset_dir: Directory containing the dataset
@@ -38,25 +38,14 @@ class YOLOTrainer:
         """
         dataset_path = Path(dataset_dir)
         
-        # Create dataset.yaml file
+        # Create dataset.yaml file for simplified 3-class system
         dataset_config = {
             'path': str(dataset_path.absolute()),
             'train': 'images/train',
             'val': 'images/val',
             'test': 'images/test',
-            'nc': 80,  # Number of classes (COCO default)
-            'names': [
-                'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat',
-                'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat',
-                'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack',
-                'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball',
-                'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket',
-                'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
-                'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake',
-                'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop',
-                'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink',
-                'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
-            ]
+            'nc': 3,  # Number of classes (person, micro, singer)
+            'names': ['person', 'micro', 'singer']  # Simplified class names
         }
         
         # Check if custom classes file exists
@@ -66,6 +55,9 @@ class YOLOTrainer:
                 custom_classes = [line.strip() for line in f.readlines()]
             dataset_config['names'] = custom_classes
             dataset_config['nc'] = len(custom_classes)
+            print(f"Using custom classes: {custom_classes}")
+        else:
+            print("Using default 3-class system: person, micro, singer")
         
         # Save dataset configuration
         config_file = dataset_path / "dataset.yaml"

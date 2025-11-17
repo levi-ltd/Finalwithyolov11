@@ -49,23 +49,15 @@ class LabelStudioManager:
             print(f"Error setting up Label Studio project: {e}")
     
     def _create_project(self):
-        """Create new Label Studio project"""
-        # Label config for object detection
+        """Create new Label Studio project for singer detection"""
+        # Label config for simplified 3-class object detection
         label_config = """
         <View>
           <Image name="image" value="$image"/>
           <RectangleLabels name="label" toName="image">
             <Label value="person" background="red"/>
-            <Label value="bicycle" background="blue"/>
-            <Label value="car" background="green"/>
-            <Label value="motorcycle" background="yellow"/>
-            <Label value="airplane" background="purple"/>
-            <Label value="bus" background="orange"/>
-            <Label value="train" background="pink"/>
-            <Label value="truck" background="brown"/>
-            <Label value="boat" background="cyan"/>
-            <Label value="traffic light" background="magenta"/>
-            <!-- Add more labels as needed -->
+            <Label value="micro" background="blue"/>
+            <Label value="singer" background="green"/>
           </RectangleLabels>
         </View>
         """
@@ -74,9 +66,9 @@ class LabelStudioManager:
             self.project = self.client.start_project(
                 title=self.project_name,
                 label_config=label_config,
-                description="YOLOv11 Object Detection Dataset"
+                description="Simplified Singer Detection Dataset (person, microphone, singer)"
             )
-            print(f"Created new Label Studio project: {self.project_name}")
+            print(f"Created new Label Studio project for singer detection: {self.project_name}")
         except Exception as e:
             print(f"Error creating Label Studio project: {e}")
     

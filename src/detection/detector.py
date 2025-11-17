@@ -7,16 +7,21 @@ from typing import List, Tuple, Dict
 import cv2
 
 class Detection:
-    """Class to represent a detection"""
+    """Class to represent a detection with singer-specific attributes"""
     def __init__(self, bbox, confidence, class_id, class_name):
         self.bbox = bbox  # [x1, y1, x2, y2]
         self.confidence = confidence
         self.class_id = class_id
         self.class_name = class_name
         self.track_id = None  # Will be set by tracker
+        
+        # Singer-specific attributes
+        self.has_micro = False
+        self.micro_distance = 0.0
+        self.original_class = None
 
 class YOLODetector:
-    """YOLOv11 Object Detector"""
+    """YOLOv11 Object Detector with Singer Detection"""
     
     def __init__(self, config: Dict):
         self.config = config
@@ -36,19 +41,22 @@ class YOLODetector:
         self.iou_threshold = self.model_config['iou_threshold']
         self.max_detections = self.model_config['max_detections']
         
-        # Enabled classes
-        self.enabled_classes = config['classes']['enabled_classes']
-        self.class_names = config['classes']['class_names']
+        # Simplified class mapping for person, micro, and singer
+        self.class_mapping = {'person': 0, 'micro': 1, 'singer': 2}
+        self.proximity_threshold = config.get('singer_detection', {}).get('proximity_threshold', 50)
+        
+        # Original YOLO class names for filtering
+        self.yolo_class_names = self.model.names
         
     def detect(self, frame: np.ndarray) -> List[Detection]:
         """
-        Run object detection on a frame
+        Run object detection on a frame with singer detection logic
         
         Args:
             frame: Input image as numpy array
             
         Returns:
-            List of Detection objects
+            List of Detection objects including detected singers
         """
         # Run inference
         results = self.model(
@@ -60,9 +68,9 @@ class YOLODetector:
             verbose=False
         )
         
-        detections = []
+        raw_detections = []
         
-        # Process results
+        # Process YOLO results and filter for our classes
         for result in results:
             boxes = result.boxes
             if boxes is not None:
@@ -72,24 +80,120 @@ class YOLODetector:
                     conf = float(box.conf[0])
                     class_id = int(box.cls[0])
                     
-                    # Filter by enabled classes
-                    if self.enabled_classes and class_id not in self.enabled_classes:
-                        continue
+                    # Get original YOLO class name
+                    yolo_class_name = self.yolo_class_names.get(class_id, f"class_{class_id}")
                     
-                    # Get class name
-                    class_name = self.class_names.get(class_id, f"class_{class_id}")
+                    # Map to our simplified classes
+                    if yolo_class_name == 'person':
+                        mapped_class_name = 'person'
+                        mapped_class_id = 0
+                    elif yolo_class_name in ['microphone', 'mic', 'cell phone']:  # Include phones as mics
+                        mapped_class_name = 'micro'
+                        mapped_class_id = 1
+                    else:
+                        continue  # Skip other classes
                     
                     # Create detection object
                     detection = Detection(
                         bbox=xyxy,
                         confidence=conf,
-                        class_id=class_id,
-                        class_name=class_name
+                        class_id=mapped_class_id,
+                        class_name=mapped_class_name
                     )
                     
-                    detections.append(detection)
+                    raw_detections.append(detection)
         
-        return detections
+        # Apply singer detection logic
+        final_detections = self._detect_singers(raw_detections)
+        
+        return final_detections
+    
+    def _detect_singers(self, detections: List[Detection]) -> List[Detection]:
+        """
+        Detect singers based on person-microphone proximity
+        
+        Args:
+            detections: List of raw detections
+            
+        Returns:
+            List of detections with singers identified
+        """
+        final_detections = []
+        person_detections = []
+        micro_detections = []
+        
+        # Separate persons and microphones
+        for detection in detections:
+            if detection.class_name == 'person':
+                person_detections.append(detection)
+            elif detection.class_name == 'micro':
+                micro_detections.append(detection)
+        
+        used_micros = set()
+        
+        # Check each person for nearby microphone
+        for person in person_detections:
+            closest_micro = None
+            min_distance = float('inf')
+            closest_micro_idx = None
+            
+            # Find closest microphone
+            for i, micro in enumerate(micro_detections):
+                if i in used_micros:
+                    continue
+                    
+                distance = self._calculate_distance(person.bbox, micro.bbox)
+                
+                if distance < min_distance and distance < self.proximity_threshold:
+                    min_distance = distance
+                    closest_micro = micro
+                    closest_micro_idx = i
+            
+            if closest_micro is not None:
+                # Convert person with microphone to singer
+                singer_detection = Detection(
+                    bbox=person.bbox,
+                    confidence=person.confidence,
+                    class_id=2,  # Singer class ID
+                    class_name='singer'
+                )
+                singer_detection.has_micro = True
+                singer_detection.micro_distance = min_distance
+                singer_detection.original_class = 'person'
+                
+                final_detections.append(singer_detection)
+                used_micros.add(closest_micro_idx)
+                
+                # Still add the microphone as separate detection
+                final_detections.append(closest_micro)
+            else:
+                # Add person without microphone
+                final_detections.append(person)
+        
+        # Add remaining unused microphones
+        for i, micro in enumerate(micro_detections):
+            if i not in used_micros:
+                final_detections.append(micro)
+        
+        return final_detections
+    
+    def _calculate_distance(self, bbox1: np.ndarray, bbox2: np.ndarray) -> float:
+        """
+        Calculate distance between centers of two bounding boxes
+        
+        Args:
+            bbox1: First bounding box [x1, y1, x2, y2]
+            bbox2: Second bounding box [x1, y1, x2, y2]
+            
+        Returns:
+            Distance between centers
+        """
+        center1_x = (bbox1[0] + bbox1[2]) / 2
+        center1_y = (bbox1[1] + bbox1[3]) / 2
+        center2_x = (bbox2[0] + bbox2[2]) / 2
+        center2_y = (bbox2[1] + bbox2[3]) / 2
+        
+        return ((center1_x - center2_x) ** 2 + (center1_y - center2_y) ** 2) ** 0.5
     
     def detect_batch(self, frames: List[np.ndarray]) -> List[List[Detection]]:
         """

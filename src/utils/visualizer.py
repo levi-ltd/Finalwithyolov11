@@ -12,8 +12,15 @@ class Visualizer:
     def __init__(self, config: Dict):
         self.config = config
         
-        # Color palette for different classes
-        self.colors = self._generate_colors(100)  # Support up to 100 classes
+        # Class-specific colors for our 3-class system
+        self.class_colors = {
+            'person': (0, 0, 255),    # Red
+            'micro': (255, 0, 0),     # Blue
+            'singer': (0, 255, 0)     # Green
+        }
+        
+        # Fallback color palette for track IDs
+        self.colors = self._generate_colors(100)
         
         # Font settings
         self.font = cv2.FONT_HERSHEY_SIMPLEX
@@ -33,7 +40,7 @@ class Visualizer:
     
     def draw_detections(self, frame: np.ndarray, detections: List) -> np.ndarray:
         """
-        Draw detection boxes and labels on frame
+        Draw detection boxes and labels on frame with singer detection support
         
         Args:
             frame: Input frame
@@ -48,16 +55,21 @@ class Visualizer:
             # Get bounding box coordinates
             x1, y1, x2, y2 = map(int, detection.bbox)
             
-            # Get color for this class
-            color = self.colors[detection.class_id % len(self.colors)]
+            # Get color based on class name first, then fallback to class ID
+            color = self.class_colors.get(detection.class_name, self.colors[detection.class_id % len(self.colors)])
             
             # Draw bounding box
             cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), color, self.thickness)
             
-            # Prepare label text
+            # Prepare label text with singer information
             label = f"{detection.class_name}: {detection.confidence:.2f}"
             if hasattr(detection, 'track_id') and detection.track_id is not None:
                 label = f"ID:{detection.track_id} {label}"
+            
+            # Add singer-specific information
+            if detection.class_name == 'singer' and hasattr(detection, 'has_micro') and detection.has_micro:
+                micro_dist = getattr(detection, 'micro_distance', 0)
+                label += f" (🎤 {micro_dist:.0f}px)"
             
             # Calculate label size
             (text_width, text_height), baseline = cv2.getTextSize(
@@ -83,6 +95,17 @@ class Visualizer:
                 (255, 255, 255),
                 self.thickness
             )
+            
+            # Draw center point
+            center_x = int((x1 + x2) / 2)
+            center_y = int((y1 + y2) / 2)
+            cv2.circle(annotated_frame, (center_x, center_y), 4, color, -1)
+            
+            # Special indicator for singers
+            if detection.class_name == 'singer':
+                # Draw microphone icon indicator (simplified)
+                cv2.putText(annotated_frame, "♪", (x2 - 20, y1 + 15), 
+                           self.font, 0.8, (0, 255, 0), 2)
         
         return annotated_frame
     

@@ -214,6 +214,13 @@ class DetectionAPI:
                     "y2": float(detection.bbox[3])
                 }
             }
+            
+            # Add singer-specific attributes if available
+            if hasattr(detection, 'has_micro'):
+                result["has_micro"] = detection.has_micro
+                result["micro_distance"] = float(detection.micro_distance)
+                result["original_class"] = detection.original_class
+            
             results.append(result)
         
         return results
@@ -235,6 +242,13 @@ class DetectionAPI:
                     "y2": float(obj.bbox[3])
                 }
             }
+            
+            # Add singer-specific attributes if available
+            if hasattr(obj, 'has_micro'):
+                result["has_micro"] = obj.has_micro
+                result["micro_distance"] = float(obj.micro_distance)
+                result["original_class"] = obj.original_class
+            
             results.append(result)
         
         return results

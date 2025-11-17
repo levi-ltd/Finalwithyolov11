@@ -13,7 +13,7 @@ class TrackState:
     REMOVED = 3
 
 class Track:
-    """Single object track"""
+    """Single object track with singer support"""
     
     def __init__(self, detection, track_id: int):
         self.track_id = track_id
@@ -21,6 +21,11 @@ class Track:
         self.confidence = detection.confidence
         self.class_id = detection.class_id
         self.class_name = detection.class_name
+        
+        # Singer-specific attributes
+        self.has_micro = getattr(detection, 'has_micro', False)
+        self.micro_distance = getattr(detection, 'micro_distance', 0.0)
+        self.original_class = getattr(detection, 'original_class', None)
         
         # Track state
         self.state = TrackState.NEW
@@ -93,6 +98,14 @@ class Track:
         
         self.bbox = detection.bbox
         self.confidence = detection.confidence
+        self.class_name = detection.class_name
+        self.class_id = detection.class_id
+        
+        # Update singer-specific attributes
+        self.has_micro = getattr(detection, 'has_micro', False)
+        self.micro_distance = getattr(detection, 'micro_distance', 0.0)
+        self.original_class = getattr(detection, 'original_class', None)
+        
         self.hits += 1
         self.time_since_update = 0
         
@@ -172,6 +185,12 @@ class ObjectTracker:
                 tracked_detection.class_id = track.class_id
                 tracked_detection.class_name = track.class_name
                 tracked_detection.track_id = track.track_id
+                
+                # Add singer-specific attributes
+                tracked_detection.has_micro = track.has_micro
+                tracked_detection.micro_distance = track.micro_distance
+                tracked_detection.original_class = track.original_class
+                
                 active_tracks.append(tracked_detection)
         
         return active_tracks

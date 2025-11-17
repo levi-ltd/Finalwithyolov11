@@ -1,5 +1,6 @@
 """
-Camera input management for real-time detection and video processing
+Camera input management for singer detection system
+Optimized for real-time person, microphone, and singer detection
 """
 import cv2
 import numpy as np

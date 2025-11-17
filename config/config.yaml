@@ -23,15 +23,18 @@ tracking:
   min_hits: 3
   iou_threshold: 0.3
 
-# Detection Classes (COCO dataset by default)
+# Detection Classes (Simplified 3-class system)
 classes:
-  enabled_classes: []  # Empty list means all classes, or specify: [0, 1, 2] for person, bicycle, car
+  enabled_classes: [0, 1, 2]  # person, micro, singer
   class_names:
     0: "person"
-    1: "bicycle"
-    2: "car"
-    3: "motorcycle"
-    # Add more as needed
+    1: "micro"
+    2: "singer"
+
+# Singer Detection Configuration
+singer_detection:
+  proximity_threshold: 50  # pixels for person-micro proximity detection
+  enabled: true
 
 # Output Configuration
 output:
